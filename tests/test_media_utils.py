@@ -682,6 +682,21 @@ async def test_image_base64_data_degrades_for_non_regular_ref_when_not_strict(
 
 
 @pytest.mark.asyncio
+async def test_image_base64_data_skips_failed_http_download_in_non_strict_mode(
+    monkeypatch,
+):
+    async def fake_resolve_path(self, *, target_format=None, preserve_mp3=False):
+        raise media_utils.DownloadFileHTTPError("HTTP status code: 400")
+
+    monkeypatch.setattr(media_utils.MediaResolver, "_resolve_path", fake_resolve_path)
+    image_ref = "https://example.com/unavailable.png"
+
+    assert await media_utils.resolve_image_ref_to_base64_data(image_ref) is None
+    with pytest.raises(media_utils.DownloadFileHTTPError):
+        await media_utils.resolve_image_ref_to_base64_data(image_ref, strict=True)
+
+
+@pytest.mark.asyncio
 async def test_media_resolver_materializes_oversized_bare_base64_image(
     tmp_path, monkeypatch
 ):

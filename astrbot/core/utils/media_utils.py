@@ -865,7 +865,7 @@ class MediaResolver:
             # assembly relies on to skip bad image refs.
             try:
                 resolved = await self._resolve_path(target_format=target_format)
-            except (OSError, ValueError) as exc:
+            except (OSError, ValueError, DownloadFileHTTPError) as exc:
                 # ValueError covers non-regular sources, which is_recoverable_image_error
                 # already treats as skippable.
                 if strict or not is_recoverable_image_error(exc):

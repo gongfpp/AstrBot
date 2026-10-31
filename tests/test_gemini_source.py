@@ -148,6 +148,41 @@ async def test_gemini_prepare_conversation_resolves_local_history_image(tmp_path
     assert image_part.inline_data.data == image_bytes
 
 
+@pytest.mark.asyncio
+async def test_gemini_keeps_text_when_history_image_download_fails(monkeypatch):
+    async def fake_resolve(url, *, media_type, strict):
+        assert media_type == "image"
+        assert strict is False
+        return None
+
+    monkeypatch.setattr(gemini_source, "resolve_media_ref_to_base64_data", fake_resolve)
+    provider = ProviderGoogleGenAI.__new__(ProviderGoogleGenAI)
+
+    contents = await provider._prepare_conversation(
+        {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Please summarize the message"},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": "https://example.com/unavailable.png"},
+                        },
+                    ],
+                }
+            ]
+        }
+    )
+
+    assert len(contents) == 1
+    assert contents[0].parts is not None
+    assert [part.text for part in contents[0].parts] == [
+        "Please summarize the message",
+        "[Image unavailable]",
+    ]
+
+
 def test_gemini_empty_output_raises_empty_model_output_error():
     llm_response = LLMResponse(role="assistant")
 

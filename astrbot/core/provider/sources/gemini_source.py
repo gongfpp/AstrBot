@@ -390,12 +390,14 @@ class ProviderGoogleGenAI(Provider):
             image_data = await resolve_media_ref_to_base64_data(
                 url,
                 media_type="image",
-                strict=True,
+                strict=False,
             )
             if image_data is None:
-                raise ValueError(
-                    f"Failed to resolve Gemini history image: {describe_media_ref(url)}"
+                logger.warning(
+                    "Skipping unavailable Gemini history image: %s",
+                    describe_media_ref(url),
                 )
+                return types.Part.from_text(text="[Image unavailable]")
             return types.Part.from_bytes(
                 data=base64.b64decode(image_data.base64_data),
                 mime_type=image_data.mime_type,
